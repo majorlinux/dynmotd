@@ -1,0 +1,59 @@
+#!/bin/bash
+#UPDATES_COUNT=$(yum check-update --quiet | grep -v "^$" | wc -l)
+#UPDATES_COUNT=1
+UPDATES_COUNT=$(cat /tmp/updateCount)
+USER=`whoami`
+HOSTNAME=`uname -n`
+AVAIL=`df -Ph /home | awk '{print $4}' | tail -1 | tr -d '\n'`
+MOUNT=`df -Ph /home | awk '{print $6}' | tail -1 | tr -d '\n'`
+#HOME=`df -Ph | grep home | awk '{print $4}' | tr -d '\n'`
+#HOME=`du -amhx /home 2> /dev/null | sort -hr | head -n 1 | awk '{print $1}'`
+#BACKUP=`df -Ph | grep backup | awk '{print $4}' | tr -d '\n'`
+
+MEMORY1=`free -t -m | grep "Mem" | awk '{print $3" MB";}'`
+MEMORY2=`free -t -m | grep "Mem" | awk '{print $2" MB";}'`
+PSA=`ps -Afl | wc -l`
+
+# time of day
+HOUR=$(date +"%H")
+if [ $HOUR -lt 12  -a $HOUR -ge 0 ]
+then    TIME="morning"
+elif [ $HOUR -lt 17 -a $HOUR -ge 12 ]
+then    TIME="afternoon"
+else
+    TIME="evening"
+fi
+
+#System uptime
+uptime=`cat /proc/uptime | cut -f1 -d.`
+upDays=$((uptime/60/60/24))
+upHours=$((uptime/60/60%24))
+upMins=$((uptime/60%60))
+upSecs=$((uptime%60))
+
+#System load
+LOAD1=`cat /proc/loadavg | awk {'print $1'}`
+LOAD5=`cat /proc/loadavg | awk {'print $2'}`
+LOAD15=`cat /proc/loadavg | awk {'print $3'}`
+
+echo "
+===========================================================================
+ - Hostname............: $HOSTNAME
+ - Release.............: `cat /etc/redhat-release`
+ - Users...............: Currently `users | wc -w` user(s) logged on
+===========================================================================
+ - CPU usage...........: $LOAD1, $LOAD5, $LOAD15 (1, 5, 15 min)
+ - Memory used.........: $MEMORY1 / $MEMORY2
+ - Processes...........: $PSA running
+ - Disk space .........: $AVAIL remaining on $MOUNT"
+echo "===========================================================================
+"
+echo "System uptime: $upDays days $upHours hours $upMins minutes $upSecs seconds"
+echo ""
+if [[ $UPDATES_COUNT -gt 0 ]]; then
+  echo "${UPDATES_COUNT} update(s) available. Please patch. See https://go.ncsu.edu/ece-linux-patch"
+  echo ""
+else
+  echo "System is up-to-date!"
+  echo ""
+fi
